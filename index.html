@@ -183,7 +183,7 @@ function hint(){
   if (!cand.length) return say("줄 수 있는 힌트가 없어요.");
   const easy = cand.filter(w => w.meaning), w = pick(easy.length ? easy : cand);
   hints++;
-  say(`힌트: ${chosung(w.word)}${w.meaning ? " — " + w.meaning : ""}`);
+  say(`힌트: ${w.meaning || chosung(w.word)}`);  // 뜻이 있는 낱말이 없을 때만 초성을 보여 준다
 }
 
 out.addEventListener("submit", ev => { ev.preventDefault(); send(); });
