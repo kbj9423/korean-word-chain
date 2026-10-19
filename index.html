@@ -105,7 +105,7 @@ const out = document.querySelector(".out");
 let level, chain, used, hints, myFirst, aiFirst;
 // 같이하기: net=Firebase 연결(online.js), me=host/guest, room=방 정보, turnStart=이번 차례가 시작된 시각
 const ONLINE = {name:"같이하기", learn:true};
-const LIMIT = 15;  // 같이하기 한 차례 제한 시간(초)
+const LIMIT = 25;  // 같이하기 한 차례 제한 시간(초)
 let net, code, me, room, turnStart, ended, unwatch, timer;
 let nick = "";
 try { nick = localStorage.getItem("wordchain-nickname") || ""; } catch (e) {}
