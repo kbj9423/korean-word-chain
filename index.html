@@ -37,7 +37,8 @@ h1{margin:0 0 22px;font:400 44px/1.1 "Black Han Sans",sans-serif}
 .who{display:inline-block;width:46px;font-size:16px;color:#cfe3d6}
 .word{font:400 30px/1.2 "Black Han Sans",sans-serif;vertical-align:middle}
 .ai .word{color:#9fd8ff}
-.mean{margin:4px 0 0 46px;font-size:17px;line-height:1.5;color:#e3ece6}
+.num{display:inline-block;width:36px;font-size:16px;color:#f6e27f}
+.mean{margin:4px 0 0 82px;font-size:17px;line-height:1.5;color:#e3ece6}
 .play{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;font-size:22px}
 .need{font:400 56px/1.2 "Black Han Sans",sans-serif;color:#f6e27f}
 .chalkline{flex:1;min-width:160px;border-bottom:4px solid #f6e27f}
@@ -139,9 +140,9 @@ function start(i){
   draw("첫 단어를 써 보세요.");
 }
 
-function line(c){
+function line(c, i){
   const w = WORDS.get(c.word);
-  return `<li class="${c.ai ? "ai" : ""}"><span class="who">${c.ai ? opp() : "나"}</span><span class="word">${c.word}</span>
+  return `<li class="${c.ai ? "ai" : ""}"><span class="num">${chain.length - i}</span><span class="who">${c.ai ? opp() : "나"}</span><span class="word">${c.word}</span>
     ${level.learn && w.meaning ? `<p class="mean">${w.meaning}</p>` : ""}</li>`;
 }
 
