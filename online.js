@@ -36,7 +36,7 @@ export async function containsProfanity(text){
 
 export async function uid(){ return (await authReady).uid; }
 
-// 방 만들기: 비어 있는 네 자리 코드를 골라 방을 연다. 하루 뒤 지워지도록 expireAt 을 넣는다.
+// 방 만들기: 비어 있는 네 자리 코드를 골라 방을 연다. 1시간 뒤 지워지도록 expireAt 을 넣는다(Firestore TTL).
 export async function create(name){
   const me = await uid();
   for (;;) {
@@ -44,7 +44,7 @@ export async function create(name){
     if ((await getDoc(room(code))).exists()) continue;
     await setDoc(room(code), {host: me, hostName: name, guest: null, guestName: "", status: "waiting",
       first: "host", chain: [], winner: "", reason: "", createdAt: serverTimestamp(),
-      expireAt: Timestamp.fromMillis(Date.now() + 24 * 3600 * 1000)});
+      expireAt: Timestamp.fromMillis(Date.now() + 3600 * 1000)});
     return code;
   }
 }
@@ -54,8 +54,9 @@ export async function join(code, name){
   const me = await uid();
   return runTransaction(db, async t => {
     const snap = await t.get(room(code));
-    if (!snap.exists()) return "그런 방이 없어요.";
     const r = snap.data();
+    // TTL 삭제는 바로 되지 않으므로, 1시간이 지난 방은 없는 방으로 본다
+    if (!r || r.expireAt.toMillis() < Date.now()) return "그런 방이 없어요.";
     if (r.host === me) return "내가 만든 방이에요.";
     if (r.status !== "waiting") return "이미 시작한 방이에요.";
     t.update(room(code), {guest: me, guestName: name, status: "playing"});
