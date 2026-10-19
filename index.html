@@ -73,8 +73,8 @@ h1{margin:0 0 22px;font:400 44px/1.1 "Black Han Sans",sans-serif}
 <script>
 // 단계별 AI: pool=AI가 쓰는 단어 범위, hard=가장 잇기 어려운 단어를 고를 확률, kill=한방 단어 사용 여부
 const LEVELS = [
-  {name:"1단계 쉬움", desc:"쉬운 낱말만 써요. 뜻도 알려 줘요.",            pool:1, hard:0,   kill:false},
-  {name:"2단계 중급", desc:"초등 중학년 낱말까지 써요. 뜻도 알려 줘요.",    pool:2, hard:0,   kill:false},
+  {name:"1단계 쉬움", desc:"쉬운 낱말만 써요.",                             pool:1, hard:0,   kill:false},
+  {name:"2단계 중급", desc:"초등 중학년 낱말까지 써요.",                    pool:2, hard:0,   kill:false},
   {name:"3단계 고급", desc:"어려운 낱말도 쓰고, 가끔 잇기 힘든 말을 내요.", pool:3, hard:0.1, kill:false},
   {name:"4단계 도전", desc:"사전 낱말을 쓰고, 한방 단어도 섞어요.",          pool:4, hard:0.3, kill:true},
   {name:"5단계 끝장", desc:"표준국어대사전을 다 쓰고, 끝장 단어만 노려요.",  pool:5, hard:1,   kill:true}
@@ -227,7 +227,10 @@ function hint(){
   if (!cand.length) return say("줄 수 있는 힌트가 없어요.");
   const easy = cand.filter(w => w.meaning), w = pick(easy.length ? easy : cand);
   hints++;
-  say(`힌트: ${w.meaning || chosung(w.word)}`);  // 뜻이 있는 낱말이 없을 때만 초성을 보여 준다
+  // 기초 어휘가 없으면 뜻 파일을 받아 뜻을 보여 주고, 뜻을 못 찾을 때만 초성을 보여 준다
+  const n = chain.length;
+  mean(w.word);
+  Promise.resolve(MEANS.get(bucket(w.word))).then(() => chain.length === n && say(`힌트: ${mean(w.word) || chosung(w.word)}`));
 }
 
 // ===== 같이하기 =====
