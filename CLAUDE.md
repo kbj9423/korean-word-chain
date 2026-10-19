@@ -7,6 +7,7 @@ AI와 하는 5단계 끝말잇기 웹 게임. 정적 사이트(`index.html` + `w
 - 데이터 생성: `python scripts/build_words.py`. 원본 XML(`data/`, git 제외)은 spellcheck-ko/korean-dict-nikl에서 받고, 기초 어휘 등급·뜻과 기초사전 XML은 `../202610 korean word`에서 읽는다.
 - 판정 사전(사람): 표준국어대사전 명사 + 우리말샘 방언·북한어·옛말 명사(고유명사 포함). AI는 단계별 범위 안에서만 쓰고 방언·북한어·옛말·고유명사는 쓰지 않는다(사용자 결정, 2026-10-18).
 - 단계별 난이도 수치는 `index.html`의 `LEVELS`에 있다.
+- 뜻: 기초 어휘는 `words.json`에, 나머지는 `python scripts/build_meanings.py`로 만든 `meanings/번호.json`(509개)에 있다. 파일 번호 계산(`bucket`)은 스크립트와 `index.html`이 같아야 한다. 모든 단계에서 뜻을 보여 준다(사용자 결정, 2026-10-19).
 
 ## 같이하기 (Firebase)
 - 프로젝트: `arrowgame-e9ac7` (다른 게임들과 공유). 연결 코드는 `online.js`(같이하기를 누를 때만 불러옴).
