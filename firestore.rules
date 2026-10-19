@@ -1,0 +1,201 @@
+// 참고용 사본입니다. Firebase 콘솔(arrowgame-e9ac7) > Firestore Database > 규칙 탭에 이 파일 전체를 붙여넣어야 실제로 적용됩니다.
+// (2026-10-19 콘솔 규칙에 wordchain-rooms 블록만 추가한 전체본입니다.)
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isOwner(res) {
+      return request.auth != null && res.data.uid == request.auth.uid;
+    }
+
+    function isAdmin() {
+      return request.auth != null && request.auth.token.email == 'kbj9423@gmail.com';
+    }
+
+    match /comments/{commentId} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.name is string
+                    && request.resource.data.name.size() > 0
+                    && request.resource.data.name.size() <= 10
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 100
+                    && (!('pinned' in request.resource.data) || request.resource.data.pinned == false);
+
+      allow update: if (isOwner(resource)
+                        && request.resource.data.uid == resource.data.uid
+                        && request.resource.data.name == resource.data.name
+                        && request.resource.data.createdAt == resource.data.createdAt
+                        && request.resource.data.pinned == resource.data.pinned
+                        && request.resource.data.text is string
+                        && request.resource.data.text.size() > 0
+                        && request.resource.data.text.size() <= 100)
+                    || (isAdmin()
+                        && request.resource.data.uid == resource.data.uid
+                        && request.resource.data.name == resource.data.name
+                        && request.resource.data.text == resource.data.text
+                        && request.resource.data.createdAt == resource.data.createdAt);
+
+      allow delete: if isOwner(resource) || isAdmin();
+    }
+
+    match /tetris-comments/{commentId} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.nickname is string
+                    && request.resource.data.nickname.size() > 0
+                    && request.resource.data.nickname.size() <= 10
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 100
+                    && (!('pinned' in request.resource.data) || request.resource.data.pinned == false);
+
+      allow update: if (isOwner(resource)
+                        && request.resource.data.uid == resource.data.uid
+                        && request.resource.data.nickname == resource.data.nickname
+                        && request.resource.data.createdAt == resource.data.createdAt
+                        && request.resource.data.pinned == resource.data.pinned
+                        && request.resource.data.text is string
+                        && request.resource.data.text.size() > 0
+                        && request.resource.data.text.size() <= 100)
+                    || (isAdmin()
+                        && request.resource.data.uid == resource.data.uid
+                        && request.resource.data.nickname == resource.data.nickname
+                        && request.resource.data.text == resource.data.text
+                        && request.resource.data.createdAt == resource.data.createdAt);
+
+      allow delete: if isOwner(resource) || isAdmin();
+    }
+
+    match /multiplication-comments/{commentId} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.nickname is string
+                    && request.resource.data.nickname.size() > 0
+                    && request.resource.data.nickname.size() <= 10
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 100
+                    && (!('pinned' in request.resource.data) || request.resource.data.pinned == false);
+
+      allow update: if (isOwner(resource)
+                        && request.resource.data.uid == resource.data.uid
+                        && request.resource.data.nickname == resource.data.nickname
+                        && request.resource.data.createdAt == resource.data.createdAt
+                        && request.resource.data.pinned == resource.data.pinned
+                        && request.resource.data.text is string
+                        && request.resource.data.text.size() > 0
+                        && request.resource.data.text.size() <= 100)
+                    || (isAdmin()
+                        && request.resource.data.uid == resource.data.uid
+                        && request.resource.data.nickname == resource.data.nickname
+                        && request.resource.data.text == resource.data.text
+                        && request.resource.data.createdAt == resource.data.createdAt);
+
+      allow delete: if isOwner(resource) || isAdmin();
+    }
+
+    // ===== 숫자잡기(countgame) =====
+
+    match /countgame-comments/{commentId} {
+      allow read: if true;
+
+      allow create: if request.auth != null
+                    && request.resource.data.uid == request.auth.uid
+                    && request.resource.data.nickname is string
+                    && request.resource.data.nickname.size() > 0
+                    && request.resource.data.nickname.size() <= 10
+                    && request.resource.data.text is string
+                    && request.resource.data.text.size() > 0
+                    && request.resource.data.text.size() <= 100
+                    && (!('pinned' in request.resource.data) || request.resource.data.pinned == false);
+
+      allow update: if (isOwner(resource)
+                        && request.resource.data.uid == resource.data.uid
+                        && request.resource.data.nickname == resource.data.nickname
+                        && request.resource.data.createdAt == resource.data.createdAt
+                        && request.resource.data.pinned == resource.data.pinned
+                        && request.resource.data.text is string
+                        && request.resource.data.text.size() > 0
+                        && request.resource.data.text.size() <= 100)
+                    || (isAdmin()
+                        && request.resource.data.uid == resource.data.uid
+                        && request.resource.data.nickname == resource.data.nickname
+                        && request.resource.data.text == resource.data.text
+                        && request.resource.data.createdAt == resource.data.createdAt);
+
+      allow delete: if isOwner(resource) || isAdmin();
+    }
+
+    // 오늘의 기록 - 등록만 가능, 수정/삭제 불가 (다른 게임에는 없는 이 프로젝트만의 컬렉션)
+    match /countgame-records/{recordId} {
+      allow read: if true;
+      allow create: if request.auth != null
+        && request.auth.uid == request.resource.data.uid
+        && request.resource.data.mode in [50, 100]
+        && request.resource.data.elapsedMs is number
+        && request.resource.data.elapsedMs > 0
+        && request.resource.data.nickname is string
+        && request.resource.data.nickname.size() > 0
+        && request.resource.data.nickname.size() <= 10
+        && request.resource.data.dateKey is string
+        && request.resource.data.dateKey.size() == 10;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // ===== 끝말잇기 대결(korean-word-chain) 같이하기 방 =====
+    match /wordchain-rooms/{code} {
+      function isPlayer(r) {
+        return request.auth != null && (request.auth.uid == r.data.host || request.auth.uid == r.data.guest);
+      }
+      function sameSeats() {
+        return request.resource.data.host == resource.data.host
+            && request.resource.data.hostName == resource.data.hostName
+            && request.resource.data.guest == resource.data.guest
+            && request.resource.data.guestName == resource.data.guestName;
+      }
+
+      allow read: if request.auth != null;
+
+      // 방 만들기: 내가 방장, 손님 없이 기다리는 상태로만
+      allow create: if request.auth != null
+                    && request.resource.data.host == request.auth.uid
+                    && request.resource.data.guest == null
+                    && request.resource.data.status == 'waiting'
+                    && request.resource.data.chain.size() == 0
+                    && request.resource.data.hostName is string
+                    && request.resource.data.hostName.size() > 0
+                    && request.resource.data.hostName.size() <= 10;
+
+      // 들어가기: 기다리는 방에 내가 손님으로 / 게임 중: 방의 두 사람만, 자리는 못 바꿈
+      allow update: if (resource.data.status == 'waiting'
+                        && resource.data.guest == null
+                        && request.resource.data.guest == request.auth.uid
+                        && request.resource.data.guest != resource.data.host
+                        && request.resource.data.guestName is string
+                        && request.resource.data.guestName.size() > 0
+                        && request.resource.data.guestName.size() <= 10
+                        && request.resource.data.status == 'playing'
+                        && request.resource.data.host == resource.data.host)
+                    || (isPlayer(resource) && sameSeats()
+                        && request.resource.data.chain.size() <= 2000);
+
+      // 나가기: 방의 두 사람만
+      allow delete: if isPlayer(resource);
+    }
+
+    match /app-config/{docId} {
+      allow read: if true;
+      allow write: if false;
+    }
+  }
+}
