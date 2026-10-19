@@ -1,7 +1,8 @@
 // 같이하기: Firestore 방(wordchain-rooms/{방 코드})에 단어를 주고받는다. 같은 Firebase 프로젝트를 다른 게임들과 함께 쓴다.
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
 import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
-import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, runTransaction, serverTimestamp, Timestamp }
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, onSnapshot, runTransaction, serverTimestamp, Timestamp,
+  collection, query, where, limit, getDocs }
   from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
 const app = initializeApp({
@@ -36,9 +37,16 @@ export async function containsProfanity(text){
 
 export async function uid(){ return (await authReady).uid; }
 
-// 방 만들기: 비어 있는 네 자리 코드를 골라 방을 연다. 1시간 뒤 지워지도록 expireAt 을 넣는다(Firestore TTL).
+// 1시간 지난 방을 몇 개씩 지운다. 창을 그냥 닫아 남은 방을 정리하는 용도라 실패해도 넘어간다.
+async function cleanup(){
+  const old = await getDocs(query(collection(db, ROOMS), where("expireAt", "<", Timestamp.now()), limit(20)));
+  await Promise.all(old.docs.map(d => deleteDoc(d.ref)));
+}
+
+// 방 만들기: 비어 있는 네 자리 코드를 골라 방을 연다. 1시간 뒤 정리되도록 expireAt 을 넣는다.
 export async function create(name){
   const me = await uid();
+  cleanup().catch(() => {});
   for (;;) {
     const code = String(Math.floor(1000 + Math.random() * 9000));
     if ((await getDoc(room(code))).exists()) continue;
@@ -55,7 +63,7 @@ export async function join(code, name){
   return runTransaction(db, async t => {
     const snap = await t.get(room(code));
     const r = snap.data();
-    // TTL 삭제는 바로 되지 않으므로, 1시간이 지난 방은 없는 방으로 본다
+    // 지난 방은 다음에 누가 방을 만들 때 지워지므로, 그 전까지는 없는 방으로 본다
     if (!r || r.expireAt.toMillis() < Date.now()) return "그런 방이 없어요.";
     if (r.host === me) return "내가 만든 방이에요.";
     if (r.status !== "waiting") return "이미 시작한 방이에요.";

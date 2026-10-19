@@ -1,5 +1,5 @@
 // 참고용 사본입니다. Firebase 콘솔(arrowgame-e9ac7) > Firestore Database > 규칙 탭에 이 파일 전체를 붙여넣어야 실제로 적용됩니다.
-// (2026-10-19 콘솔 규칙에 wordchain-rooms 블록만 추가한 전체본입니다.)
+// (2026-10-19 콘솔 규칙에 wordchain-rooms 블록만 추가한 전체본입니다. 같은 날 만료된 방 정리 조건을 더함.)
 
 rules_version = '2';
 service cloud.firestore {
@@ -189,8 +189,9 @@ service cloud.firestore {
                     || (isPlayer(resource) && sameSeats()
                         && request.resource.data.chain.size() <= 2000);
 
-      // 나가기: 방의 두 사람만
-      allow delete: if isPlayer(resource);
+      // 나가기: 방의 두 사람만 / 1시간 지난 방은 로그인한 누구나 정리 가능
+      allow delete: if isPlayer(resource)
+                    || (request.auth != null && resource.data.expireAt < request.time);
     }
 
     match /app-config/{docId} {
