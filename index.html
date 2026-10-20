@@ -42,6 +42,8 @@ h1{margin:0 0 22px;font:400 44px/1.1 "Black Han Sans",sans-serif}
 .mean:empty{display:none}
 .play{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px;font-size:22px}
 .need{font:400 56px/1.2 "Black Han Sans",sans-serif;color:#f6e27f}
+.need small{font:400 20px/1 "Gowun Dodum",sans-serif;color:#cfe3d6}
+.could .mean{margin-left:0}
 .chalkline{flex:1;min-width:160px;border-bottom:4px solid #f6e27f}
 .chalkline input{width:100%;padding:0;border:0;background:none;font:400 40px/1.3 "Black Han Sans",sans-serif;color:#f6e27f}
 .btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
@@ -102,6 +104,7 @@ const WORDS = new Map();     // 단어 → {word, lv, meaning}
 const BY_FIRST = new Map();  // 첫 글자 → 단어 목록
 const starts = e => heads(e).flatMap(h => BY_FIRST.get(h) || []);
 const cont = w => heads(last(w)).reduce((n, h) => n + (BY_FIRST.get(h) || []).length, 0);  // 끝 글자로 이을 수 있는 단어 수 (0이면 한방 단어)
+const nextCount = e => { const n = starts(e).filter(w => !used.has(w.word)).length; return n > 10 ? "10+" : n; };  // 지금 쓸 수 있는 낱말 수 (이미 나온 말 빼고)
 
 // 기초 어휘 밖 낱말의 뜻은 meanings/번호.json 에 나눠 두고, 화면에 나올 때 그 파일만 받는다 (번호 계산은 scripts/build_meanings.py 와 같다)
 const MEANS = new Map();  // 파일 번호 → {낱말: 뜻} (받는 중이면 Promise)
@@ -120,6 +123,7 @@ let level, chain, used, hints, myFirst, aiFirst;
 // 같이하기: net=Firebase 연결(online.js), me=host/guest, room=방 정보, turnStart=이번 차례가 시작된 시각
 const ONLINE = {name:"같이하기"};
 const LIMIT = 25;  // 같이하기 한 차례 제한 시간(초)
+const HINTS = 3;   // 한 판에 쓸 수 있는 힌트 수 (혼자하기·같이하기 같음)
 let net, code, me, room, turnStart, ended, unwatch, timer;
 let nick = "";
 try { nick = localStorage.getItem("wordchain-nickname") || ""; } catch (e) {}
@@ -130,6 +134,7 @@ const other = s => s === "host" ? "guest" : "host";
 const whoAt = i => i % 2 === 0 ? room.first : other(room.first);
 const myTurn = () => room.status === "playing" && whoAt(room.chain.length) === me;
 const opp = () => online() ? esc(me === "host" ? room.guestName : room.hostName) : "AI";
+const usedHints = who => online() ? (room.hints?.[who || me] || 0) : hints;
 
 function home(){
   out.innerHTML = `<p class="lead">AI와 혼자 하거나, 방 코드로 친구와 같이 해요.</p>
@@ -161,23 +166,35 @@ function line(c, i){
 // wait=true 이면 상대(AI)가 생각하는 중이라 입력과 버튼을 막는다
 function draw(msg, wait){
   const c = chain[chain.length - 1], e = c ? last(c.word) : "", off = wait ? "disabled" : "";
-  out.innerHTML = `<div class="top">${online() ? `<span class="lv s3">나 vs ${opp()}</span><span class="timer"></span>`
+  out.innerHTML = `<div class="top">${online() ? `<span class="lv s3">나 vs ${opp()}</span><span class="hints">${opp()} 힌트 ${HINTS - usedHints(other(me))}</span><span class="timer"></span>`
       : `<span class="lv s${LEVELS.indexOf(level) + 1}">${level.name}</span><span>${chain.length}번째 말</span>`}</div>
     ${c ? `<p class="last${c.ai ? " ai" : ""}"><span class="who">${c.ai ? opp() : "나"}</span><span class="word">${c.word.slice(0, -1)}<em>${e}</em></span></p>` : ""}
     <form class="play">
-      ${e ? `<span class="need">${lab(e)}</span>` : ""}
+      ${e ? `<span class="need">${lab(e)}<small> ${nextCount(e)}개</small></span>` : ""}
       <span class="chalkline"><input aria-label="내 단어" autocomplete="off" enterkeyhint="send" ${off}></span>
     </form>
-    <div class="btns"><button class="btn main" data-act="send" ${off}>내기</button>${online() ? "" : `<button class="btn" data-act="hint" ${off}>힌트</button>`}<button class="btn" data-act="quit" ${online() ? "" : off}>기권</button></div>
+    <div class="btns"><button class="btn main" data-act="send" ${off}>내기</button><button class="btn" data-act="hint" ${wait || usedHints() >= HINTS ? "disabled" : ""}>힌트 ${HINTS - usedHints()}</button><button class="btn" data-act="quit" ${online() ? "" : off}>기권</button></div>
     <p class="msg">${msg}</p>
     <ul class="chain">${chain.slice().reverse().map(line).join("")}</ul>`;
   if (!wait) out.querySelector("input").focus();
 }
 
+// 졌을 때 내 차례에 쓸 수 있었던 낱말을 쉬운 말부터 3개까지 보여 준다
+function could(){
+  const c = chain[chain.length - 1];
+  if (!c || !c.ai) return [];
+  const cand = starts(last(c.word)).filter(w => !used.has(w.word)).sort(() => Math.random() - 0.5);
+  const rank = w => w.meaning ? 0 : w.lv ? 1 : 2;  // 기초 어휘 → 표준어 → 방언·옛말·고유명사
+  return cand.sort((a, b) => rank(a) - rank(b)).slice(0, 3).map(w => w.word);
+}
+
 function finish(win, why){
+  const ws = win ? [] : could();
   out.innerHTML = `<p class="end">${win ? "이겼어요!" : "졌어요."}</p>
     <p class="lead">${why}</p>
     <p class="lead">${chain.length}개의 말을 이었어요.${online() ? "" : ` 힌트 ${hints}번.`}</p>
+    ${ws.length ? `<p class="lead">이런 말로 이을 수 있었어요.</p>
+    <ul class="chain could">${ws.map(w => `<li><span class="word">${w}</span><p class="mean" data-w="${w}">${esc(mean(w))}</p></li>`).join("")}</ul>` : ""}
     <ul class="chain">${chain.slice().reverse().map(line).join("")}</ul>
     <div class="btns">${online() ? `<button class="btn main" data-act="rematch">다시 하기</button><button class="btn" data-act="leave">나가기</button>`
       : `<button class="btn main" data-act="again">다시 하기</button><button class="btn" data-act="solo">단계 바꾸기</button>`}</div>`;
@@ -221,12 +238,22 @@ function aiTurn(){
   draw(`${lab(last(w.word))}(으)로 이어 보세요.`);
 }
 
-function hint(){
+// 남은 힌트 수를 버튼과 상대 힌트 표시에 다시 쓴다 (화면 전체를 다시 그리면 입력과 힌트 글이 지워지므로)
+function showHints(){
+  const b = out.querySelector('[data-act="hint"]'), el = out.querySelector(".hints");
+  if (b) { b.textContent = `힌트 ${HINTS - usedHints()}`; if (usedHints() >= HINTS) b.disabled = true; }
+  if (el) el.innerHTML = `${opp()} 힌트 ${HINTS - usedHints(other(me))}`;
+}
+
+async function hint(){
+  if (usedHints() >= HINTS) return;
   const e = chain.length ? last(chain[chain.length - 1].word) : "";
   const cand = (e ? starts(e) : [...WORDS.values()]).filter(w => w.lv && !used.has(w.word) && cont(w.word));
   if (!cand.length) return say("줄 수 있는 힌트가 없어요.");
   const easy = cand.filter(w => w.meaning), w = pick(easy.length ? easy : cand);
-  hints++;
+  if (!online()) hints++;
+  else if (!myTurn() || !await net.hint(code, me).catch(() => false)) return;  // 같이하기는 방 정보에 쓴 횟수를 올려 상대도 보게 한다
+  showHints();
   // 기초 어휘가 없으면 뜻 파일을 받아 뜻을 보여 주고, 뜻을 못 찾을 때만 초성을 보여 준다
   const n = chain.length;
   mean(w.word);
@@ -272,7 +299,7 @@ function onRoom(r){
   if (r.status === "waiting") return out.innerHTML = `<p class="lead">방 코드</p><p class="end">${code}</p>
     <p class="lead">상대에게 이 코드를 알려 주세요. 들어오면 바로 시작해요.</p>
     <div class="btns"><button class="btn" data-act="leave">나가기</button></div>`;
-  if (prev && prev.status === r.status && prev.chain.length === r.chain.length) return;  // 바뀐 것이 없으면 다시 그리지 않는다
+  if (prev && prev.status === r.status && prev.chain.length === r.chain.length) return showHints();  // 힌트 수만 바뀌었으면 그것만 고친다
   chain = r.chain.map((word, i) => ({word, ai: whoAt(i) !== me}));
   used = new Set(r.chain);
   turnStart = Date.now(); ended = false;

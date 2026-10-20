@@ -51,7 +51,7 @@ export async function create(name){
     const code = String(Math.floor(1000 + Math.random() * 9000));
     if ((await getDoc(room(code))).exists()) continue;
     await setDoc(room(code), {host: me, hostName: name, guest: null, guestName: "", status: "waiting",
-      first: "host", chain: [], winner: "", reason: "", createdAt: serverTimestamp(),
+      first: "host", chain: [], hints: {host: 0, guest: 0}, winner: "", reason: "", createdAt: serverTimestamp(),
       expireAt: Timestamp.fromMillis(Date.now() + 3600 * 1000)});
     return code;
   }
@@ -87,6 +87,17 @@ export async function play(code, me, word, kill){
   });
 }
 
+// 힌트 쓰기: 내 차례이고 남은 힌트가 있을 때만 쓴 횟수를 올린다.
+export async function hint(code, me){
+  return runTransaction(db, async t => {
+    const r = (await t.get(room(code))).data(), n = r.hints?.[me] || 0;
+    const turn = r.chain.length % 2 === 0 ? r.first : (r.first === "host" ? "guest" : "host");
+    if (r.status !== "playing" || turn !== me || n >= 3) return false;
+    t.update(room(code), {["hints." + me]: n + 1});
+    return true;
+  });
+}
+
 // 게임 끝내기 (기권·시간 초과·상대 응답 없음). 이미 끝났으면 그대로 둔다.
 export async function end(code, winner, reason){
   return runTransaction(db, async t => {
@@ -99,7 +110,7 @@ export async function end(code, winner, reason){
 export async function rematch(code){
   return runTransaction(db, async t => {
     const r = (await t.get(room(code))).data();
-    if (r.status === "over") t.update(room(code), {status: "playing", chain: [], winner: "", reason: "",
+    if (r.status === "over") t.update(room(code), {status: "playing", chain: [], hints: {host: 0, guest: 0}, winner: "", reason: "",
       first: r.first === "host" ? "guest" : "host"});
   });
 }
